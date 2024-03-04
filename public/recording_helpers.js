@@ -75,7 +75,12 @@ var recordingHelpers = (() => {
       mediaRecorder.ondataavailable = (e) => {
         const audioBlob = e.data;
         if (mediaRecorder.state === "recording")
-          socket.emit("write_to_stream", audioBlob, (ack) => {});
+          socket.emit("write_to_stream", audioBlob, (ack) => {
+            if (ack.status !== "ok") {
+              console.log("unable to write into stream");
+              // offline chuncks ??
+            }
+          });
       };
     };
 
@@ -124,6 +129,11 @@ var recordingHelpers = (() => {
     $(`#stream-file-${fieldName}-label`).html("");
   };
 
+  const hasAudioInput = (fieldName) => {
+    const id = `stream-field-${fieldName}`;
+    return $(`#${id}`).length > 0;
+  };
+
   const updateRecordBtn = (fieldName, state) => {
     const domId = `#${fieldName}-start-recording-btn`;
     if (state === "recording") $(domId).addClass("recording-active");
@@ -133,7 +143,24 @@ var recordingHelpers = (() => {
   return {
     toggleRecording: async (e, fieldName) => {
       try {
-        if (currentRecorder) {
+        if (
+          (!currentRecorder ||
+            currentRecorder.getRecordingState() === "inactive") &&
+          hasAudioInput(fieldName)
+        ) {
+          // overwrite old recording?
+          if (
+            !confirm(
+              `The field '${fieldName}' already has a recording, do you want to delete it?`
+            )
+          )
+            return;
+          else {
+            removeAudioFromForm(fieldName);
+            currentRecorder = null;
+          }
+        } else if (currentRecorder) {
+          // is a recorder for another field recording or paused?
           const state = currentRecorder.getRecordingState();
           const oldFieldName = currentRecorder.getFieldName();
           if (
@@ -145,24 +172,10 @@ var recordingHelpers = (() => {
               text: `A recorder for '${oldFieldName}' is ${state}, please stop it before starting a new one.`,
             });
             return;
-          } else if (state === "inactive") {
-            if (oldFieldName === fieldName) {
-              const oldFile = currentRecorder.getCurrentFile();
-              if (oldFile) {
-                if (
-                  confirm(
-                    `The field '${fieldName}' already has a recording, do you want to delete it?`
-                  )
-                ) {
-                  removeAudioFromForm(fieldName);
-                  currentRecorder = null;
-                } else return;
-              }
-            }
-            currentRecorder = null;
           }
         }
 
+        // do the toggle
         if (!currentRecorder) {
           const form = $(e).closest("form");
           const recorder = new Recorder(form, fieldName);
@@ -191,6 +204,7 @@ var recordingHelpers = (() => {
         ) {
           await currentRecorder.stop();
           updateRecordBtn(fieldName, currentRecorder.getRecordingState());
+          currentRecorder = null;
         }
       } catch (err) {
         notifyAlert({
