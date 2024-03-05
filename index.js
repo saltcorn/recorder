@@ -40,7 +40,9 @@ const configFields = async (field) => {
       label: "Device",
       type: "String",
       required: true,
-      attributes: { options: ["microphone"] },
+      attributes: {
+        options: ["microphone", "camera", "microphone and camera"],
+      },
     },
   ];
 };
@@ -104,7 +106,7 @@ const recorderFileView = {
         {
           class: "btn btn-sm btn-secondary me-2",
           type: "button",
-          onClick: `recordingHelpers.toggleRecording(this, '${field.name}')`,
+          onClick: `recordingHelpers.toggleRecording(this, '${field.name}', '${attrs.device}')`,
         },
         i({ id: `${field.name}-start-recording-btn`, class: "fas fa-circle" })
       ),

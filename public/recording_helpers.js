@@ -1,7 +1,7 @@
 var recordingHelpers = (() => {
   let currentRecorder = null;
 
-  function Recorder(form, fieldName) {
+  function Recorder(form, fieldName, device) {
     const viewName = form.attr("data-viewname");
     const idVal = form.find("[name=id]").attr("value");
     const id = idVal ? parseInt(idVal) : undefined;
@@ -9,7 +9,7 @@ var recordingHelpers = (() => {
 
     let socket = null;
     let mediaRecorder = null;
-    let audioStream = null;
+    let mediaStream = null;
     let mimeType = null;
     let currentFile = null;
 
@@ -23,10 +23,22 @@ var recordingHelpers = (() => {
     };
 
     const initMediaRecorder = async () => {
-      audioStream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-      });
-      mediaRecorder = new MediaRecorder(audioStream);
+      let cfg = null;
+      switch (device) {
+        case "microphone":
+          cfg = { audio: true };
+          break;
+        case "camera":
+          cfg = { video: true };
+          break;
+        case "microphone and camera":
+          cfg = { audio: true, video: true };
+          break;
+        default:
+          throw new Error("Invalid device type");
+      }
+      mediaStream = await navigator.mediaDevices.getUserMedia(cfg);
+      mediaRecorder = new MediaRecorder(mediaStream);
       const result = new Promise((resolve, reject) => {
         mediaRecorder.onstart = (e) => {
           resolve(mediaRecorder.mimeType);
@@ -99,7 +111,7 @@ var recordingHelpers = (() => {
       },
       stop: async () => {
         mediaRecorder.stop();
-        for (const track of audioStream.getTracks()) {
+        for (const track of mediaStream.getTracks()) {
           track.stop();
         }
         await closeStream();
@@ -153,7 +165,7 @@ var recordingHelpers = (() => {
   };
 
   return {
-    toggleRecording: async (e, fieldName) => {
+    toggleRecording: async (e, fieldName, device) => {
       try {
         if (
           (!currentRecorder ||
@@ -190,7 +202,7 @@ var recordingHelpers = (() => {
         // do the toggle
         if (!currentRecorder) {
           const form = $(e).closest("form");
-          const recorder = new Recorder(form, fieldName);
+          const recorder = new Recorder(form, fieldName, device);
           await recorder.start();
           addAudioToForm(form, fieldName, recorder.getCurrentFile());
           currentRecorder = recorder;
