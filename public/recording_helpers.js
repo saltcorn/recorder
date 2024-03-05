@@ -134,10 +134,22 @@ var recordingHelpers = (() => {
     return $(`#${id}`).length > 0;
   };
 
-  const updateRecordBtn = (fieldName, state) => {
-    const domId = `#${fieldName}-start-recording-btn`;
-    if (state === "recording") $(domId).addClass("recording-active");
-    else $(domId).removeClass("recording-active");
+  const updateControls = (fieldName, state) => {
+    const jBtn = $(`#${fieldName}-start-recording-btn`);
+    switch (state) {
+      case "recording":
+        jBtn.removeClass("fa-pause");
+        jBtn.addClass("recording-active fa-circle");
+        break;
+      case "paused":
+        jBtn.removeClass("recording-active fa-circle");
+        jBtn.addClass("fa-pause");
+        break;
+      case "inactive":
+        jBtn.removeClass("recording-active fa-pause");
+        jBtn.addClass("fa-circle");
+        break;
+    }
   };
 
   return {
@@ -187,7 +199,7 @@ var recordingHelpers = (() => {
         } else if (currentRecorder.getRecordingState() === "recording") {
           currentRecorder.pause();
         }
-        updateRecordBtn(fieldName, currentRecorder.getRecordingState());
+        updateControls(fieldName, currentRecorder.getRecordingState());
       } catch (err) {
         notifyAlert({
           type: "danger",
@@ -203,7 +215,7 @@ var recordingHelpers = (() => {
           ["paused", "recording"].includes(currentRecorder.getRecordingState())
         ) {
           await currentRecorder.stop();
-          updateRecordBtn(fieldName, currentRecorder.getRecordingState());
+          updateControls(fieldName, currentRecorder.getRecordingState());
           currentRecorder = null;
         }
       } catch (err) {
