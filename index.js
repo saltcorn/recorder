@@ -7,6 +7,7 @@ const {
   span,
   i,
   input,
+  video,
 } = require("@saltcorn/markup/tags");
 const db = require("@saltcorn/data/db");
 const { createWriteStream } = require("fs");
@@ -92,6 +93,7 @@ const recorderFileView = {
   description: "Stream based Recorder",
   configFields,
   run: (nm, file_name, attrs, cls, reqd, field) => {
+    const isVideo = ["camera", "microphone and camera"].includes(attrs.device);
     return div(
       { id: "recorder" },
       file_name
@@ -134,6 +136,13 @@ const recorderFileView = {
           onclick: `recordingHelpers.removeRecording(this, '${field.name}')`,
         })
       ),
+      isVideo
+        ? video({
+            class: "d-block mt-2",
+            style: "border-style: inset; width: 350px;",
+            id: `${field.name}-video-element`,
+          })
+        : "",
       script({
         src: `/static_assets/${db.connectObj.version_tag}/socket.io.min.js`,
       })

@@ -38,6 +38,11 @@ var recordingHelpers = (() => {
           throw new Error("Invalid device type");
       }
       mediaStream = await navigator.mediaDevices.getUserMedia(cfg);
+      const video = document.getElementById(`${fieldName}-video-element`);
+      if (video) {
+        video.srcObject = mediaStream;
+        video.play();
+      }
       mediaRecorder = new MediaRecorder(mediaStream);
       const result = new Promise((resolve, reject) => {
         mediaRecorder.onstart = (e) => {
@@ -96,6 +101,16 @@ var recordingHelpers = (() => {
       };
     };
 
+    const pauseVideo = () => {
+      const video = document.getElementById(`${fieldName}-video-element`);
+      if (video) video.pause();
+    };
+
+    const resumeVideo = () => {
+      const video = document.getElementById(`${fieldName}-video-element`);
+      if (video) video.play();
+    };
+
     return {
       start: async () => {
         await initSocket();
@@ -105,9 +120,11 @@ var recordingHelpers = (() => {
       },
       pause: () => {
         mediaRecorder.pause();
+        pauseVideo();
       },
       resume: () => {
         mediaRecorder.resume();
+        resumeVideo();
       },
       stop: async () => {
         mediaRecorder.stop();
@@ -116,6 +133,7 @@ var recordingHelpers = (() => {
         }
         await closeStream();
         socket.close();
+        pauseVideo();
       },
       getCurrentFile: () => currentFile,
       getRecordingState: () => mediaRecorder.state,
