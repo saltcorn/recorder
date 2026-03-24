@@ -62,7 +62,7 @@ const openStream = async (
   if (oldTarget) {
     file = await File.findOne(oldTarget);
     absolutePath = file.location;
-    servePath = File.absPathToServePath(file.location);
+    servePath = file.path_to_serve;
   } else {
     let fileName = null;
     if (rowId) {
@@ -80,7 +80,7 @@ const openStream = async (
       cfg.folder ? cfg.folder : "/"
     );
     absolutePath = file.absolutePath;
-    servePath = file.location;
+    servePath = file.path_to_serve;
   }
 
   const stream = createWriteStream(absolutePath, { flags: "a" });
