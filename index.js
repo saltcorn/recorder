@@ -11,6 +11,7 @@ const {
   i,
   input,
   video,
+  domReady,
 } = require("@saltcorn/markup/tags");
 const db = require("@saltcorn/data/db");
 const { createWriteStream } = require("fs");
@@ -57,7 +58,7 @@ const openStream = async (
   fieldName,
   user,
   cfg,
-  { oldTarget, mimeType }
+  { oldTarget, mimeType },
 ) => {
   let file = null,
     absolutePath = null,
@@ -80,7 +81,7 @@ const openStream = async (
       "",
       user.id,
       user.role_id,
-      cfg.folder ? cfg.folder : "/"
+      cfg.folder ? cfg.folder : "/",
     );
     absolutePath = file.absolutePath;
     servePath = file.path_to_serve;
@@ -113,7 +114,7 @@ const recorderFileView = {
           type: "button",
           onClick: `recordingHelpers.toggleRecording(this, '${field.name}', '${attrs.device}')`,
         },
-        i({ id: `${field.name}-start-recording-btn`, class: "fas fa-circle" })
+        i({ id: `${field.name}-start-recording-btn`, class: "fas fa-circle" }),
       ),
       button(
         {
@@ -121,7 +122,7 @@ const recorderFileView = {
           type: "button",
           onClick: `recordingHelpers.stopRecording('${field.name}')`,
         },
-        i({ id: `${field.name}-stop-recording-btn`, class: "fas fa-stop" })
+        i({ id: `${field.name}-stop-recording-btn`, class: "fas fa-stop" }),
       ),
       span(
         {
@@ -130,14 +131,14 @@ const recorderFileView = {
         },
         span(
           { id: `stream-file-${field.name}-label`, class: "me-2" },
-          file_name ? file_name : ""
+          file_name ? file_name : "",
         ),
         i({
           id: `${field.name}-stop-recording-btn`,
           class: "fas fa-times",
           role: "button",
           onclick: `recordingHelpers.removeRecording(this, '${field.name}')`,
-        })
+        }),
       ),
       isVideo
         ? video({
@@ -148,7 +149,7 @@ const recorderFileView = {
         : "",
       script({
         src: `/static_assets/${db.connectObj.version_tag}/socket.io.min.js`,
-      })
+      }),
     );
   },
   openDataStream: openStream,
@@ -156,7 +157,8 @@ const recorderFileView = {
 
 const continuousRecorder = {
   name: "ContinuousRecorder",
-  description: "Continuous recording with automatic segmentation into table rows",
+  description:
+    "Continuous recording with automatic segmentation into table rows",
   display_state_form: false,
   get_state_fields: () => [],
   configuration_workflow: (req) =>
@@ -169,10 +171,10 @@ const continuousRecorder = {
             const fields = table.getFields();
             const dirs = await File.allDirectories();
             const fileFields = fields.filter(
-              (f) => f.type === "File" || f.type?.name === "File"
+              (f) => f.type === "File" || f.type?.name === "File",
             );
             const stringFields = fields.filter(
-              (f) => f.type?.name === "String"
+              (f) => f.type?.name === "String",
             );
             return new Form({
               fields: [
@@ -256,7 +258,7 @@ const continuousRecorder = {
           onclick: `continuousRecorder.start('${viewname}')`,
         },
         i({ class: "fas fa-circle me-1" }),
-        "Start Recording"
+        "Start Recording",
       ),
       button(
         {
@@ -266,7 +268,7 @@ const continuousRecorder = {
           onclick: `continuousRecorder.stop('${viewname}')`,
         },
         i({ class: "fas fa-stop me-1" }),
-        "Stop Recording"
+        "Stop Recording",
       ),
       div({ id: `cr-status-${viewname}`, class: "mt-2" }),
       isVideo
@@ -280,8 +282,8 @@ const continuousRecorder = {
         src: `/static_assets/${db.connectObj.version_tag}/socket.io.min.js`,
       }),
       script(
-        `continuousRecorder.init(${JSON.stringify(clientConfig)})`
-      )
+        domReady(`continuousRecorder.init(${JSON.stringify(clientConfig)})`),
+      ),
     );
   },
   openDataStream: async (
@@ -292,7 +294,7 @@ const continuousRecorder = {
     fieldView,
     user,
     configuration,
-    targetOpts
+    targetOpts,
   ) => {
     const { mimeType } = targetOpts;
     const fileName = `recording_${new Date().valueOf()}`;
@@ -302,7 +304,7 @@ const continuousRecorder = {
       "",
       user.id,
       user.role_id,
-      configuration.folder || "/"
+      configuration.folder || "/",
     );
     const stream = createWriteStream(file.absolutePath, { flags: "a" });
     return { stream, target: { file: file.path_to_serve } };
@@ -323,7 +325,9 @@ const continuousRecorder = {
       if (file_name_field && extraValues[file_name_field]) {
         const file = await File.findOne(file_path);
         if (file) {
-          await file.rename(extraValues[file_name_field] + "." + file.filename.split(".").pop());
+          await file.rename(
+            extraValues[file_name_field] + "." + file.filename.split(".").pop(),
+          );
         }
       }
 
