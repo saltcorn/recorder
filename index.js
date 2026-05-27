@@ -344,7 +344,14 @@ module.exports = {
   viewtemplates: [continuousRecorder],
   headers: [
     {
-      script: "/plugins/public/recorder/recording_helpers.js",
+      script: `/plugins/public/recorder@${
+        require("./package.json").version
+      }/recording_helpers.js`,
+    },
+    {
+      script: `/plugins/public/recorder@${
+        require("./package.json").version
+      }/waveplayer.js`,
     },
     {
       css: "/plugins/public/recorder/recorder.css",
