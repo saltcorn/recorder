@@ -13,6 +13,7 @@ const {
   video,
   domReady,
 } = require("@saltcorn/markup/tags");
+const { stateFieldsToWhere } = require("@saltcorn/data/plugin-helper");
 const db = require("@saltcorn/data/db");
 const { createWriteStream } = require("fs");
 const { extension } = require("mime-types");
@@ -337,11 +338,195 @@ const continuousRecorder = {
   },
 };
 
+const wavePlayer = {
+  name: "WavePlayer",
+  description: "Audio waveform player for file fields",
+  display_state_form: false,
+  get_state_fields: async (table_id, viewname, { show_view }) => {
+    const table = Table.findOne({ id: table_id });
+    const fields = table.getFields();
+    return fields
+      .filter((f) => !f.calculated || f.stored)
+      .map((f) => {
+        const sf = new Object(f);
+        sf.required = false;
+        return sf;
+      });
+  },
+  configuration_workflow: (req) =>
+    new Workflow({
+      steps: [
+        {
+          name: "Player settings",
+          form: async (context) => {
+            const table = Table.findOne({ id: context.table_id });
+            const fields = table.getFields();
+            const fileFields = fields.filter(
+              (f) => f.type === "File" || f.type?.name === "File",
+            );
+            const stringFields = fields.filter(
+              (f) => f.type?.name === "String",
+            );
+            return new Form({
+              fields: [
+                {
+                  name: "file_field",
+                  label: "File field",
+                  sublabel: "The File field containing audio files",
+                  type: "String",
+                  required: true,
+                  attributes: {
+                    options: fileFields.map((f) => f.name),
+                  },
+                },
+                {
+                  name: "title_field",
+                  label: "Title field",
+                  sublabel:
+                    "Optional String field displayed as title above each player",
+                  type: "String",
+                  attributes: {
+                    options: ["", ...stringFields.map((f) => f.name)],
+                  },
+                },
+                {
+                  name: "height",
+                  label: "Waveform height (px)",
+                  type: "Integer",
+                  default: 128,
+                },
+                {
+                  name: "bar_width",
+                  label: "Bar width (px)",
+                  type: "Integer",
+                  default: 4,
+                },
+                {
+                  name: "bar_gap",
+                  label: "Bar gap (px)",
+                  type: "Integer",
+                  default: 1,
+                },
+                {
+                  name: "waveform_color",
+                  label: "Waveform color",
+                  type: "Color",
+                  default: "#428bca",
+                },
+                {
+                  name: "progress_color",
+                  label: "Progress color",
+                  type: "Color",
+                  default: "#31708f",
+                },
+              ],
+            });
+          },
+        },
+      ],
+    }),
+  run: async (table_id, viewname, config, state, { req }) => {
+    const {
+      file_field,
+      title_field,
+      height,
+      bar_width,
+      bar_gap,
+      waveform_color,
+      progress_color,
+    } = config;
+    const table = Table.findOne({ id: table_id });
+    const fields = table.getFields();
+    const qstate = await stateFieldsToWhere({ fields, state });
+    const rows = await table.getRows(qstate);
+
+    if (rows.length === 0) return div("No audio files found.");
+
+    const playerItems = [];
+    const playerConfigs = [];
+
+    for (const row of rows) {
+      const fileVal = row[file_field];
+      if (!fileVal) continue;
+      const containerId = `wp-${viewname}-${row.id}`;
+      const title = title_field ? row[title_field] : null;
+
+      playerItems.push(
+        div(
+          { class: "waveplayer-item mb-3" },
+          title
+            ? div({ class: "waveplayer-title fw-bold mb-1" }, title)
+            : "",
+          div({ id: containerId, class: "waveplayer-container" }),
+          div(
+            { class: "mt-1" },
+            button(
+              {
+                class: "btn btn-sm btn-outline-secondary",
+                type: "button",
+                id: `${containerId}-play-btn`,
+                onclick: `wpTogglePlay('${containerId}')`,
+              },
+              i({ class: "fas fa-play" }),
+            ),
+          ),
+        ),
+      );
+
+      playerConfigs.push({ id: containerId, url: "/files/serve/"+fileVal });
+    }
+
+    if (playerItems.length === 0) return div("No audio files found.");
+
+    const wpOpts = {
+      height: height || 128,
+      barWidth: bar_width || 4,
+      barGap: bar_gap || 1,
+      waveformColor: waveform_color || "#428bca",
+      progressColor: progress_color || "#31708f",
+    };
+
+    return div(
+      { id: `waveplayer-view-${viewname}` },
+      ...playerItems,
+      script(`
+function wpTogglePlay(containerId) {
+  var player = window._wpPlayers && window._wpPlayers[containerId];
+  if (!player) return;
+  var btn = document.getElementById(containerId + '-play-btn');
+  var icon = btn ? btn.querySelector('i') : null;
+  if (player.paused) {
+    player.play();
+    if (icon) icon.className = 'fas fa-pause';
+  } else {
+    player.pause();
+    if (icon) icon.className = 'fas fa-play';
+  }
+}
+      `),
+      script(
+        domReady(`
+window._wpPlayers = window._wpPlayers || {};
+var wpConfigs = ${JSON.stringify(playerConfigs)};
+var wpOpts = ${JSON.stringify(wpOpts)};
+wpConfigs.forEach(function(cfg) {
+  var player = WavePlayer.Factory.createPlayer(
+    Object.assign({ container: '#' + cfg.id }, wpOpts)
+  );
+  player.load(cfg.url, { type: 'webAudio' });
+  window._wpPlayers[cfg.id] = player;
+});
+        `),
+      ),
+    );
+  },
+};
+
 module.exports = {
   sc_plugin_api_version: 1,
   plugin_name: "recorder",
   fileviews: { Recorder: recorderFileView },
-  viewtemplates: [continuousRecorder],
+  viewtemplates: [continuousRecorder, wavePlayer],
   headers: [
     {
       script: `/plugins/public/recorder@${
@@ -351,7 +536,7 @@ module.exports = {
     {
       script: `/plugins/public/recorder@${
         require("./package.json").version
-      }/waveplayer.js`,
+      }/waveplayer.browser.js`,
     },
     {
       css: "/plugins/public/recorder/recorder.css",
