@@ -438,7 +438,10 @@ const wavePlayer = {
     const table = Table.findOne({ id: table_id });
     const fields = table.getFields();
     const qstate = await stateFieldsToWhere({ fields, state });
-    const rows = await table.getRows(qstate);
+    const rows = await table.getRows(qstate, {
+      forUser: req.user || { role_id: 100 },
+      forPublic: !req.user,
+    });
 
     if (rows.length === 0) return div("No audio files found.");
 
@@ -454,9 +457,7 @@ const wavePlayer = {
       playerItems.push(
         div(
           { class: "waveplayer-item mb-3" },
-          title
-            ? div({ class: "waveplayer-title fw-bold mb-1" }, title)
-            : "",
+          title ? div({ class: "waveplayer-title fw-bold mb-1" }, title) : "",
           div({ id: containerId, class: "waveplayer-container" }),
           div(
             { class: "mt-1" },
@@ -473,7 +474,7 @@ const wavePlayer = {
         ),
       );
 
-      playerConfigs.push({ id: containerId, url: "/files/serve/"+fileVal });
+      playerConfigs.push({ id: containerId, url: "/files/serve/" + fileVal });
     }
 
     if (playerItems.length === 0) return div("No audio files found.");
