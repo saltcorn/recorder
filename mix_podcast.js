@@ -1,3 +1,4 @@
+const File = require("@saltcorn/data/models/file");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 
@@ -71,6 +72,8 @@ async function mixPodcast(opts) {
   if (!outro) throw new Error("outro is required");
   if (!Array.isArray(segments) || segments.length === 0)
     throw new Error("segments must be a non-empty array");
+
+  const use_output = File.get_new_path(output, true);
 
   const needDivider = segments.length > 1;
   if (needDivider && !divider)
@@ -173,14 +176,16 @@ async function mixPodcast(opts) {
     "-q:a",
     "2",
     "-y",
-    output,
+    use_output,
   );
 
   await execFileAsync(FFMPEG, args);
+  const relPath = File.absPathToServePath(use_output);
 
   const totalMs = outroStart + ODur;
   return {
-    output,
+    output: use_output,
+    file: await File.findOne(relPath),
     durationMs: totalMs,
     timeline: {
       IDur,
