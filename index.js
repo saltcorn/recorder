@@ -528,6 +528,9 @@ module.exports = {
   plugin_name: "recorder",
   fileviews: { Recorder: recorderFileView },
   viewtemplates: [continuousRecorder, wavePlayer],
+  functions: {
+    mix_podcast: require("./mix_podcast.js"),
+  },
   headers: [
     {
       script: `/plugins/public/recorder@${
@@ -538,6 +541,7 @@ module.exports = {
       script: `/plugins/public/recorder@${
         require("./package.json").version
       }/waveplayer.browser.js`,
+      onlyViews: ["WavePlayer"],
     },
     {
       css: "/plugins/public/recorder/recorder.css",
