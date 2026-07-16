@@ -9,5 +9,21 @@
     "mime-types": "^2.1.35"
   },
   "author": "Christian Hugo",
-  "license": "MIT"
+  "license": "MIT",
+   "eslintConfig": {
+    "extends": "eslint:recommended",
+    "parserOptions": {
+      "ecmaVersion": 2024
+    },
+    "env": {
+      "node": true,
+      "es6": true
+    },
+    "rules": {
+      "no-unused-vars": "off",
+      "no-case-declarations": "off",
+      "no-empty": "warn",
+      "no-fallthrough": "warn"
+    }
+  }
 }
