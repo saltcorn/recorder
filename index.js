@@ -530,6 +530,8 @@ module.exports = {
   viewtemplates: [continuousRecorder, wavePlayer],
   functions: {
     mix_podcast: require("./mix_podcast.js"),
+    mix_bed_under_speech: require("./mix_bed_under_speech.js"),
+    fade_out_tail: require("./fade_out_tail.js"),
   },
   headers: [
     {
